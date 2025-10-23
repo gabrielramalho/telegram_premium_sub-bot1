@@ -107,5 +107,14 @@ async def expire_loop():
 async def on_startup(dp: Dispatcher):
     asyncio.create_task(expire_loop())
 
+# ... imports e código acima mantidos ...
+
+async def on_startup(dp: Dispatcher):
+    # mata qualquer webhook pendente e descarta updates antigos
+    await bot.delete_webhook(drop_pending_updates=True)
+    asyncio.create_task(expire_loop())
+
 if __name__ == "__main__":
+    from aiogram.utils import executor
     executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
+
