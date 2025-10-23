@@ -1,6 +1,7 @@
-
 import os, time, asyncio, datetime as dt
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, types
+from aiogram.dispatcher import Dispatcher
+from aiogram.utils import executor
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_ID = int(os.getenv("TELEGRAM_CHANNEL_ID", "0"))
@@ -9,7 +10,7 @@ if not BOT_TOKEN or CHANNEL_ID == 0:
     raise RuntimeError("Defina as variáveis de ambiente BOT_TOKEN e TELEGRAM_CHANNEL_ID.")
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+dp = Dispatcher(bot)  # <<<<<<<<<<<<<< IMPORTANTE: passar o bot aqui
 
 # --- memória simplificada (depois trocaremos por BD) ---
 users = {}   # telegram_id -> {"status": "active|expired|none", "end_at": dt, "pending_invite": str|None}
@@ -29,7 +30,7 @@ async def create_one_time_invite(expected_user_id: int, minutes_valid: int = 60)
     }
     return invite.invite_link
 
-@dp.message(commands={"start"})
+@dp.message_handler(commands=["start"])
 async def cmd_start(msg: types.Message):
     uid = msg.from_user.id
     users.setdefault(uid, {"status": "none", "end_at": None, "pending_invite": None})
@@ -42,7 +43,7 @@ async def cmd_start(msg: types.Message):
     )
     await msg.answer(txt)
 
-@dp.message(commands={"status"})
+@dp.message_handler(commands=["status"])
 async def cmd_status(msg: types.Message):
     u = users.get(msg.from_user.id, {"status":"none","end_at":None})
     if u["status"] == "active":
@@ -53,7 +54,7 @@ async def cmd_status(msg: types.Message):
     else:
         await msg.answer("ℹ️ Você ainda não possui assinatura ativa.\nUse /entrar para solicitar acesso.")
 
-@dp.message(commands={"entrar"})
+@dp.message_handler(commands=["entrar"])
 async def cmd_entrar(msg: types.Message):
     uid = msg.from_user.id
     # Simulação: ativa assinatura por 1 dia (na próxima etapa, isso ocorrerá após PIX confirmado)
@@ -103,14 +104,8 @@ async def expire_loop():
                     pass
         await asyncio.sleep(1800)  # 30 minutos
 
-@dp.startup()
-async def on_startup():
+async def on_startup(dp: Dispatcher):
     asyncio.create_task(expire_loop())
 
-def main():
-    from aiogram import executor
-    print("Bot starting...")
-    executor.start_polling(dp, skip_updates=True)
-
 if __name__ == "__main__":
-    main()
+    executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
