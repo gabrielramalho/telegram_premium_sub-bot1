@@ -4,7 +4,7 @@ from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 
 from sqlalchemy import (
-    create_engine, Column, Integer, String, DateTime, ForeignKey, Boolean
+    create_engine, Column, Integer, String, DateTime, ForeignKey, Boolean, BigInteger
 )
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from sqlalchemy.sql import func
@@ -40,7 +40,7 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
-    telegram_id = Column(Integer, unique=True, index=True, nullable=False)
+    telegram_id = Column(BigInteger, unique=True, index=True, nullable=False)  # << BIGINT
     username = Column(String)
     created_at = Column(DateTime, server_default=func.now())
     subscriptions = relationship("Subscription", back_populates="user")
@@ -62,7 +62,7 @@ class Invite(Base):
     invite_link = Column(String, unique=True, nullable=False)
     expires_at = Column(DateTime, nullable=False)
     used = Column(Boolean, default=False)
-    used_by = Column(Integer, nullable=True)
+    used_by = Column(BigInteger, nullable=True)  # << BIGINT
     created_at = Column(DateTime, server_default=func.now())
     user = relationship("User", back_populates="invites")
 
